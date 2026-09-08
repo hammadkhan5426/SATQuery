@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+.pytest_cache/
+
+# Environment secrets
+.env
+
+# SQLite database (real data — not committed)
+backend/database.db
+
+# Logs
+backend/app.log
+
+# macOS
+.DS_Store
+
+# Editor
+.vscode/
