@@ -1,0 +1,27 @@
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: satquery
+      POSTGRES_PASSWORD: satquery
+      POSTGRES_DB: satquery
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+
+  web:
+    build: ./backend
+    restart: unless-stopped
+    depends_on:
+      - db
+    env_file:
+      - ./backend/.env
+    environment:
+      DATABASE_URL: postgresql://satquery:satquery@db:5432/satquery
+    ports:
+      - "8000:8000"
+
+volumes:
+  postgres_data:
