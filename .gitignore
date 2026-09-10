@@ -19,3 +19,6 @@ backend/app.log
 
 # Editor
 .vscode/
+
+# Uploaded satellite imagery (real files — not committed)
+backend/storage/

@@ -14,6 +14,10 @@ class Settings(BaseSettings):
     # Comma-separated list of allowed CORS origins read from .env (CORS_ORIGINS)
     cors_origins: str = "http://localhost:3000,http://localhost:5173"
 
+    # Local directory where uploaded satellite images are stored on disk.
+    # Relative paths are resolved against the backend/ directory at runtime.
+    image_storage_dir: str = "storage/images"
+    
     model_config = SettingsConfigDict(
         env_file=".env",
         extra="ignore",
