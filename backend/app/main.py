@@ -17,9 +17,10 @@ from core.logging_config import setup_logging
 from core.rate_limit import limiter
 from models import satellite_image  # noqa: F401 - needed so Base knows about this table
 from models import image_pair  # noqa: F401 - needed so Base knows about this table
+from models import analysis_result  # noqa: F401 - needed so Base knows about this table
 from models import chat as chat_models  # noqa: F401 - needed so Base knows about this table
 from models import satellite # noqa: F401
-from routers import chat, health, image_pairs, images, satellites
+from routers import analysis, chat, health, image_pairs, images, satellites
 from routers.satellites import sync_celestrak_group
 
 # Configure logging before initializing the app
@@ -150,6 +151,7 @@ app.include_router(images.router)
 app.include_router(satellites.router)
 app.include_router(chat.router)
 app.include_router(image_pairs.router)
+app.include_router(analysis.router)
 
 
 
