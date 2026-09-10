@@ -129,3 +129,34 @@ def get_analysis(request: Request, analysis_id: int, db: Session = Depends(get_d
     if not result:
         raise HTTPException(status_code=404, detail=f"Analysis with ID {analysis_id} not found.")
     return result
+
+
+# Export just the GeoJSON regions from a stored analysis as a standard FeatureCollection,
+# ready to be downloaded and opened directly in a mapping tool.
+@router.get("/analysis/{analysis_id}/geojson")
+@limiter.limit("60/minute")
+def get_analysis_geojson(request: Request, analysis_id: int, db: Session = Depends(get_db)):
+    result = db.query(AnalysisResult).filter(AnalysisResult.id == analysis_id).first()
+    if not result:
+        raise HTTPException(status_code=404, detail=f"Analysis with ID {analysis_id} not found.")
+
+    features = []
+    for region in result.regions:
+        geometry = region.get("geojson")
+        if geometry is None:
+            # Skip regions that don't have actual geometry data
+            continue
+        features.append({
+            "type": "Feature",
+            "geometry": geometry,
+            "properties": {
+                "type": region.get("type"),
+                "area": region.get("area"),
+                "confidence": region.get("confidence"),
+            },
+        })
+
+    return {
+        "type": "FeatureCollection",
+        "features": features,
+    }
