@@ -44,4 +44,23 @@ class Satellite(Base):
         default=None,
     )
 
+    # Date the satellite was launched (optional)
+    launch_date: Mapped[datetime | None] = mapped_column(
+        DateTime,
+        nullable=True,
+        default=None,
+    )
+
+    # Owning organization or operator, e.g. "NASA", "SpaceX" (optional)
+    owner: Mapped[str | None] = mapped_column(String, nullable=True, default=None)
+
+    # Category/purpose of the satellite, e.g. "communication", "weather", "military" (optional)
+    satellite_type: Mapped[str | None] = mapped_column(String, nullable=True, default=None)
+
+    # Country of origin/registration (optional)
+    country_of_origin: Mapped[str | None] = mapped_column(String, nullable=True, default=None)
+
+    # Orbit classification, e.g. "LEO", "MEO", "GEO" (optional)
+    orbit_type: Mapped[str | None] = mapped_column(String, nullable=True, default=None)
+
 

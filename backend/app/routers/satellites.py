@@ -201,6 +201,11 @@ def create_satellite(
     new_satellite = Satellite(
         name=payload.name,
         norad_id=payload.norad_id,
+        launch_date=payload.launch_date,
+        owner=payload.owner,
+        satellite_type=payload.satellite_type,
+        country_of_origin=payload.country_of_origin,
+        orbit_type=payload.orbit_type,
     )
     # Add to the session, commit to save to SQLite, and refresh to get generated fields (like id and created_at)
     db.add(new_satellite)
@@ -362,6 +367,18 @@ def update_satellite(
     # Update name if provided
     if payload.name is not None:
         satellite.name = payload.name
+
+    # Update optional metadata fields if provided
+    if payload.launch_date is not None:
+        satellite.launch_date = payload.launch_date
+    if payload.owner is not None:
+        satellite.owner = payload.owner
+    if payload.satellite_type is not None:
+        satellite.satellite_type = payload.satellite_type
+    if payload.country_of_origin is not None:
+        satellite.country_of_origin = payload.country_of_origin
+    if payload.orbit_type is not None:
+        satellite.orbit_type = payload.orbit_type
 
     # Save changes and return the updated satellite
     db.commit()

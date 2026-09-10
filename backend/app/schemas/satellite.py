@@ -9,6 +9,13 @@ class SatelliteCreate(BaseModel):
     # NORAD catalog ID must be a positive integer
     norad_id: int = Field(gt=0)
 
+    # Optional additional metadata
+    launch_date: datetime | None = None
+    owner: str | None = Field(default=None, max_length=100)
+    satellite_type: str | None = Field(default=None, max_length=50)
+    country_of_origin: str | None = Field(default=None, max_length=100)
+    orbit_type: str | None = Field(default=None, max_length=20)
+
     # Automatically strip leading and trailing whitespace from string inputs
     model_config = ConfigDict(str_strip_whitespace=True)
 
@@ -19,6 +26,13 @@ class SatelliteUpdate(BaseModel):
     name: str | None = Field(default=None, min_length=1, max_length=100)
     # Optional updated NORAD ID (must be > 0)
     norad_id: int | None = Field(default=None, gt=0)
+
+    # Optional updated metadata
+    launch_date: datetime | None = None
+    owner: str | None = Field(default=None, max_length=100)
+    satellite_type: str | None = Field(default=None, max_length=50)
+    country_of_origin: str | None = Field(default=None, max_length=100)
+    orbit_type: str | None = Field(default=None, max_length=20)
 
     # Automatically strip leading and trailing whitespace from string inputs
     model_config = ConfigDict(str_strip_whitespace=True)
@@ -37,6 +51,13 @@ class SatelliteRead(BaseModel):
     tle_line1: str | None = None
     tle_line2: str | None = None
     tle_updated_at: datetime | None = None
+
+    # Optional additional metadata
+    launch_date: datetime | None = None
+    owner: str | None = None
+    satellite_type: str | None = None
+    country_of_origin: str | None = None
+    orbit_type: str | None = None
 
     # Enable reading data from ORM / SQLAlchemy model attributes
     model_config = ConfigDict(from_attributes=True)
