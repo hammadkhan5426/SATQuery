@@ -17,6 +17,7 @@ from core.database import SQLALCHEMY_DATABASE_URL, Base, engine  # noqa: E402
 from models.satellite import Satellite  # noqa: E402, F401
 from models.satellite_image import SatelliteImage  # noqa: E402, F401
 from models.chat import ChatMessage, ChatSession  # noqa: E402, F401
+from models.image_pair import ImagePair  # noqa: E402, F401
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
