@@ -16,8 +16,9 @@ from core.database import SessionLocal
 from core.logging_config import setup_logging
 from core.rate_limit import limiter
 from models import satellite_image  # noqa: F401 - needed so Base knows about this table
+from models import chat as chat_models  # noqa: F401 - needed so Base knows about this table
 from models import satellite # noqa: F401
-from routers import health, images, satellites
+from routers import chat, health, images, satellites
 from routers.satellites import sync_celestrak_group
 
 # Configure logging before initializing the app
@@ -146,6 +147,7 @@ async def global_exception_handler(request: Request, exc: Exception):
 app.include_router(health.router)
 app.include_router(images.router)
 app.include_router(satellites.router)
+app.include_router(chat.router)
 
 
 
