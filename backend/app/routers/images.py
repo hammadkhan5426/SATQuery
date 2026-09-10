@@ -109,9 +109,16 @@ def list_images(
     request: Request,
     skip: int = 0,
     limit: int = 10,
+    satellite_id: int | None = None,
     db: Session = Depends(get_db),
 ):
-    images = db.query(SatelliteImage).offset(skip).limit(limit).all()
+    query = db.query(SatelliteImage)
+
+    # Optionally filter to only images linked to a specific satellite
+    if satellite_id is not None:
+        query = query.filter(SatelliteImage.satellite_id == satellite_id)
+
+    images = query.offset(skip).limit(limit).all()
     return [
         {
             "id": img.id,
