@@ -3,6 +3,7 @@ import path from "path";
 import { createServer as createViteServer } from "vite";
 import { GoogleGenAI } from "@google/genai";
 import dotenv from "dotenv";
+import multer from "multer";
 
 dotenv.config();
 
@@ -17,6 +18,9 @@ function getGeminiClient(): GoogleGenAI | null {
 async function startServer() {
   const app = express();
   const PORT = 3000;
+  const upload = multer({
+    storage: multer.memoryStorage(),
+  });
 
   app.use(express.json());
 
@@ -38,6 +42,93 @@ async function startServer() {
       }
 
       const client = getGeminiClient();
+        // ChangeFormer model service
+  app.post(
+    "/api/analyze",
+    upload.fields([
+      { name: "before_image", maxCount: 1 },
+      { name: "after_image", maxCount: 1 },
+    ]),
+    async (req, res) => {
+      try {
+        const files = req.files as {
+          [fieldname: string]: Express.Multer.File[];
+        };
+
+        const beforeImage = files?.before_image?.[0];
+        const afterImage = files?.after_image?.[0];
+
+        if (!beforeImage || !afterImage) {
+          return res.status(400).json({
+            error: "Both before_image and after_image are required",
+          });
+        }
+
+        const formData = new FormData();
+
+        formData.append(
+          "before_image",
+          new Blob([beforeImage.buffer], {
+            type: beforeImage.mimetype,
+          }),
+          beforeImage.originalname
+        );
+
+        formData.append(
+          "after_image",
+          new Blob([afterImage.buffer], {
+            type: afterImage.mimetype,
+          }),
+          afterImage.originalname
+        );
+
+        formData.append(
+          "query",
+          typeof req.body.query === "string"
+            ? req.body.query
+            : "What changed between these images?"
+        );
+
+        const modelResponse = await fetch(
+          "http://localhost:8001/analyze",
+          {
+            method: "POST",
+            body: formData,
+          }
+        );
+
+        if (!modelResponse.ok) {
+          const errorText = await modelResponse.text();
+
+          console.error(
+            "ChangeFormer service error:",
+            errorText
+          );
+
+          return res.status(502).json({
+            error: "ChangeFormer model service failed",
+            details: errorText,
+          });
+        }
+
+        const result = await modelResponse.json();
+
+        return res.json({
+          success: true,
+          source: "changeformer",
+          ...result,
+        });
+      } catch (err: any) {
+        console.error("SATQuery /api/analyze error:", err);
+
+        return res.status(500).json({
+          error:
+            err.message ||
+            "Failed to analyze satellite imagery",
+        });
+      }
+    }
+  );
 
       // If Gemini API Key is available, invoke gemini-3.8-flash
       if (client) {
