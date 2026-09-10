@@ -2,11 +2,21 @@ import React, { useState } from 'react';
 import { AttachmentFile } from '../types';
 import { SAMPLE_DATASETS_CATALOG } from '../data/mockData';
 
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL as string;
+const API_KEY = import.meta.env.VITE_API_KEY as string;
+
 interface GeoTiffUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
   onAddAttachment: (file: AttachmentFile) => void;
 }
+
+// Maps the UI's modality dropdown value to a readable label sent to our backend
+const MODALITY_LABELS: Record<'optical' | 'sar' | 'thermal', string> = {
+  optical: 'Optical',
+  sar: 'SAR',
+  thermal: 'Thermal Infrared',
+};
 
 export const GeoTiffUploadModal: React.FC<GeoTiffUploadModalProps> = ({
   isOpen,
@@ -18,17 +28,63 @@ export const GeoTiffUploadModal: React.FC<GeoTiffUploadModalProps> = ({
   const [sensorType, setSensorType] = useState<'optical' | 'sar' | 'thermal'>('optical');
   const [customFilename, setCustomFilename] = useState('Rotterdam_WV3_2024_Bands.tif');
   const [dragActive, setDragActive] = useState(false);
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
 
   if (!isOpen) return null;
 
-  const handleMountCustom = () => {
-    onAddAttachment({
-      id: `slot-${Date.now()}`,
-      filename: customFilename || `${selectedSensor.split(' ')[0]}_tile.tif`,
-      index: Math.floor(Math.random() * 8) + 3,
-      type: sensorType,
-    });
-    onClose();
+  const handleMountCustom = async () => {
+    if (!selectedFile) {
+      setUploadError('Please choose or drop a file first.');
+      return;
+    }
+
+    setIsUploading(true);
+    setUploadError(null);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', selectedFile);
+
+      const sensorLabel = selectedSensor.split(' (')[0];
+      const modalityLabel = MODALITY_LABELS[sensorType];
+
+      const params = new URLSearchParams({
+        sensor: sensorLabel,
+        modality: modalityLabel,
+      });
+
+      const res = await fetch(`${API_BASE_URL}/images/?${params.toString()}`, {
+        method: 'POST',
+        headers: {
+          'X-API-Key': API_KEY,
+        },
+        body: formData,
+      });
+
+      if (!res.ok) {
+        const errBody = await res.json().catch(() => null);
+        throw new Error(errBody?.detail || `Upload failed with status ${res.status}`);
+      }
+
+      const data = await res.json();
+
+      onAddAttachment({
+        id: `slot-${data.id}-${Date.now()}`,
+        filename: data.original_filename || customFilename,
+        index: Math.floor(Math.random() * 8) + 3,
+        type: sensorType,
+        backendImageId: data.id,
+      });
+
+      setSelectedFile(null);
+      onClose();
+    } catch (err) {
+      setUploadError(err instanceof Error ? err.message : 'Upload failed. Please try again.');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleMountSample = (sample: typeof SAMPLE_DATASETS_CATALOG[0]) => {
@@ -57,15 +113,25 @@ export const GeoTiffUploadModal: React.FC<GeoTiffUploadModalProps> = ({
     setDragActive(false);
     if (e.dataTransfer.files && e.dataTransfer.files[0]) {
       const file = e.dataTransfer.files[0];
+      setSelectedFile(file);
       setCustomFilename(file.name);
+      setUploadError(null);
       setActiveTab('custom');
+    }
+  };
+
+  const handleFileInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setSelectedFile(file);
+      setCustomFilename(file.name);
+      setUploadError(null);
     }
   };
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-in fade-in duration-150">
       <div className="bg-[#151821] border border-[#252b3b] rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden flex flex-col max-h-[90vh]">
-        {/* Modal Header */}
         <div className="p-4 border-b border-[#252b3b] flex items-center justify-between bg-[#1b1f2b]">
           <div className="flex items-center gap-2">
             <span className="material-symbols-outlined text-[20px] text-emerald-400">
@@ -83,7 +149,6 @@ export const GeoTiffUploadModal: React.FC<GeoTiffUploadModalProps> = ({
           </button>
         </div>
 
-        {/* Tab Selection */}
         <div className="flex items-center gap-2 px-5 pt-3 border-b border-[#252b3b]/60 bg-[#151821]">
           <button
             onClick={() => setActiveTab('catalog')}
@@ -110,7 +175,6 @@ export const GeoTiffUploadModal: React.FC<GeoTiffUploadModalProps> = ({
           </button>
         </div>
 
-        {/* Modal Body */}
         <div className="p-5 space-y-4 text-xs font-mono overflow-y-auto flex-1">
           {activeTab === 'catalog' ? (
             <div className="space-y-2.5">
@@ -157,30 +221,36 @@ export const GeoTiffUploadModal: React.FC<GeoTiffUploadModalProps> = ({
             </div>
           ) : (
             <>
-              {/* Drag & Drop Area */}
-              <div
+              <label
                 onDragEnter={handleDrag}
                 onDragLeave={handleDrag}
                 onDragOver={handleDrag}
                 onDrop={handleDrop}
-                className={`border-2 border-dashed rounded-xl p-6 text-center transition-colors cursor-pointer ${
+                className={`block border-2 border-dashed rounded-xl p-6 text-center transition-colors cursor-pointer ${
                   dragActive
                     ? 'border-emerald-400 bg-emerald-500/10'
                     : 'border-[#252b3b] hover:border-emerald-400/40 bg-[#0c0e12]/60'
                 }`}
               >
+                <input
+                  type="file"
+                  accept=".tif,.tiff,.png,.jpg,.jpeg"
+                  onChange={handleFileInputChange}
+                  className="hidden"
+                />
                 <span className="material-symbols-outlined text-[32px] text-emerald-400">
                   cloud_upload
                 </span>
                 <div className="mt-2 text-[#f1f4f9] font-medium">
-                  Drag and drop Cloud-Optimized GeoTIFF (COG), NetCDF, or HDF5
+                  {selectedFile
+                    ? `Selected: ${selectedFile.name}`
+                    : 'Drag and drop, or click to browse for a GeoTIFF, PNG, or JPEG'}
                 </div>
                 <div className="text-[11px] text-[#94a3b8] mt-1 font-sans">
                   EPSG:32618 / UTM projections auto-reprojected with sub-pixel GeoDoctor validation.
                 </div>
-              </div>
+              </label>
 
-              {/* Filename Input */}
               <div className="space-y-1">
                 <label className="text-[#94a3b8] uppercase text-[10px] tracking-wider">
                   Raster File Identifier
@@ -193,7 +263,6 @@ export const GeoTiffUploadModal: React.FC<GeoTiffUploadModalProps> = ({
                 />
               </div>
 
-              {/* Sensor Select */}
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1">
                   <label className="text-[#94a3b8] uppercase text-[10px] tracking-wider">
@@ -230,10 +299,15 @@ export const GeoTiffUploadModal: React.FC<GeoTiffUploadModalProps> = ({
                   </select>
                 </div>
               </div>
+
+              {uploadError && (
+                <div className="p-2.5 bg-red-500/10 border border-red-400/30 rounded-lg text-[11px] text-red-400 font-sans">
+                  {uploadError}
+                </div>
+              )}
             </>
           )}
 
-          {/* GeoDoctor Check Notice */}
           <div className="p-3 bg-[#11141a] rounded-xl border border-emerald-500/20 text-[11px] text-[#94a3b8] space-y-1">
             <div className="text-emerald-400 font-semibold flex items-center gap-1.5">
               <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
@@ -245,7 +319,6 @@ export const GeoTiffUploadModal: React.FC<GeoTiffUploadModalProps> = ({
           </div>
         </div>
 
-        {/* Modal Footer */}
         <div className="p-4 border-t border-[#252b3b] flex items-center justify-end gap-2 bg-[#1b1f2b]">
           <button
             onClick={onClose}
@@ -256,9 +329,10 @@ export const GeoTiffUploadModal: React.FC<GeoTiffUploadModalProps> = ({
           {activeTab === 'custom' && (
             <button
               onClick={handleMountCustom}
-              className="px-4 py-1.5 rounded-lg bg-emerald-400 text-[#003825] font-semibold hover:brightness-110 active:scale-95 transition-all text-xs cursor-pointer shadow-[0_0_12px_rgba(52,211,153,0.3)]"
+              disabled={isUploading}
+              className="px-4 py-1.5 rounded-lg bg-emerald-400 text-[#003825] font-semibold hover:brightness-110 active:scale-95 transition-all text-xs cursor-pointer shadow-[0_0_12px_rgba(52,211,153,0.3)] disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Mount Sensor Band
+              {isUploading ? 'Uploading...' : 'Mount Sensor Band'}
             </button>
           )}
         </div>
@@ -266,4 +340,3 @@ export const GeoTiffUploadModal: React.FC<GeoTiffUploadModalProps> = ({
     </div>
   );
 };
-

@@ -78,4 +78,7 @@ export interface AttachmentFile {
   filename: string;
   index: number;
   type: 'optical' | 'sar' | 'thermal';
+  // The real backend image ID, set after a successful upload to our FastAPI backend.
+  // Undefined for catalog/mock attachments that were never actually uploaded.
+  backendImageId?: number;
 }
