@@ -1,6 +1,0 @@
-{
-  "name": "SATQuery - Interactive AI Analyst Prototype",
-  "description": "Interactive agentic Earth Observation intelligence prototype (ChatGPT style) for bi-temporal satellite imagery analysis, spatial evidence inspection, and zero-hallucination refusal shield.",
-  "requestFramePermissions": [],
-  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
-}
